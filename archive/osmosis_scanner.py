@@ -1,6 +1,6 @@
 import requests
 import argparse
-from cosmos_addresses import list_address
+from constants.cosmos_addresses import list_address
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', choices=[x for x in list_address])
 args = parser.parse_args()
@@ -118,7 +118,7 @@ def get_precise_pools(user_address, price_by_pool):
         print(get_info_precise(current_lp, price_by_pool, lock))
 
 
-address = list_address[args.name]
+address = list_address[args.name]['OSMO']
 
 prices_by_token = get_price_by_token()
 get_balance(address, prices_by_token)
