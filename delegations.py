@@ -11,7 +11,8 @@ args = parser.parse_args()
 precise = True
 show_votes = False
 
-addresses = list_address[args.name]['all']
+addresses = list_address[args.name]
+big_total = 0
 for ibc_obj in addresses:
     print('')
     print(ibc_obj.address, ibc_obj.token)
@@ -27,10 +28,14 @@ for ibc_obj in addresses:
             ibc_obj.get_balance()
             ibc_obj.get_pools()
             ibc_obj.get_precise_pools()
-        elif ibc_obj.token in ['ATOM', 'JUNO']:
+        elif ibc_obj.token in ['ATOM', 'JUNO', 'STAR']:
             print(f'{ibc_obj.token} MORE PRECISE INFO')
             ibc_obj.get_price_by_token_custom()
             ibc_obj.get_balance()
 
+    big_total += ibc_obj.get_total_value(verbose=True)
+
     if show_votes:
         ibc_obj.show_ongoing_proposals()
+
+print(f'BIG TOTAL : {big_total} UST')

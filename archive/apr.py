@@ -5,7 +5,7 @@ ONE_MILLION = 1000 * 1000
 
 
 def get_last_reward(ibc_obj):
-    txs = requests.get(ibc_obj.url_last_txs).json()
+    txs = ibc_obj.last_transactions(limit=5)
 
     for tx in txs:
         if tx['data']['tx']['body']['messages'][0][

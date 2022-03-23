@@ -12,11 +12,11 @@ def get_pool_apr(id_pool):
     first_apr = round(infos[0]['apr_list'][0]['apr_14d'], 2)
     if len(infos[0]['apr_list']) == 1:
         # No external incentive
-        return first_apr
+        return round(first_apr, 2)
 
     total_apr = first_apr + round(infos[0]['apr_list'][1]['apr_14d'], 2)
     print(f'POOL {id_pool} {pool_tokens} : {total_apr} %')
-    return total_apr
+    return round(total_apr, 2)
 
 
 prices_by_token = IBCToken.get_price_by_token()
@@ -41,9 +41,13 @@ print(f'NB POOLS {len(list_id_pools)}')
 print('Retrieving informations....')
 incentive_pools = dict()
 for id_pool in list_id_pools:
-    total_apr = get_pool_apr(id_pool)
-    pool_tokens = all_pools[id_pool]
-    incentive_pools[pool_tokens] = dict(id_pool=id_pool, total_apr=total_apr)
+    try:
+        total_apr = get_pool_apr(id_pool)
+        pool_tokens = all_pools[id_pool]
+        incentive_pools[pool_tokens] = dict(id_pool=id_pool, total_apr=total_apr)
+    except Exception as e:
+        print(f'ERREUR / POOL {id_pool}: {e}')
+
 
 print('... information retrieved!')
 i = 0

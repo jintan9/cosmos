@@ -12,6 +12,7 @@ nomic = Compounder('NOM', apr=round(float(nomic_apr) * 100, 2), fees=0.01)
 desmos = Compounder('DSM', apr=84, fees=0.002)
 atom = Compounder('ATOM', apr=15, fees=0.0025, number_actions=1)
 juno = Compounder('JUNO', apr=120, fees=0.0016, number_actions=1)
+cerberus = Compounder('CRBRUS', apr=1025, fees=0.004, number_actions=1)
 
 
 class Compound:
@@ -63,8 +64,10 @@ def find_best_apr(number_of_token, token_data):
     Compound(number_of_token, 24*7, token_data).calculate_interest(verbose=True)
 
 print('APR NOMIC', Compound(0,0, nomic).get_apr(), '%')
-find_best_apr(3.94, nomic)
-find_best_apr(7.35, nomic)
-find_best_apr(44, desmos)
-find_best_apr(26.25, atom)
-find_best_apr(31, juno)
+find_best_apr(6.06, nomic)
+find_best_apr(11.05, nomic)
+
+# find_best_apr(44, desmos)
+# find_best_apr(26.25, atom)
+# find_best_apr(31, juno)
+find_best_apr(10111, cerberus)
