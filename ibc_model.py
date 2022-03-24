@@ -181,6 +181,7 @@ class IBCToken:
         print('')
         return dict(nb_voted=nb_voted, nb_ongoing_proposals=nb_ongoing_proposals,
                     list_not_voted=list_not_voted)
+
     def has_voted_proposals(self, prop):
         url = self.api + 'gov/proposals/' + prop['id'] + '/votes/' + self.address
         has_voted = requests.get(url).json()

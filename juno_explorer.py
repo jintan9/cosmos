@@ -25,6 +25,8 @@ list_contracts['juno1el6rfmz6h9pwpdlf6k2qf4dwt3y5wqd7k3xpyvytklsnkt9uv2aqe8aq4v'
 list_contracts['juno1lgprt38gkp4nvggjl0dm0e7k5lgd80e525f8rjg60tc6fk2xexcqhpp6sm'] = JunoswapLP('LP JUNO HUAHUA')
 list_contracts['juno1730cx75d8uevqvrkcwxpy9trhqqfksu5u9xwqss0qe4tn7x0tt3shakhk8'] = JunoswapPool('JUNO HUAHUA Pool')
 
+list_contracts['juno1hkz5dhn59w6l29k8w8ceuramqx2f35qpen7xtlx6ezketwh8ndxq8rwq2a'] = JunoswapPool('JUNO SCRT Pool')
+
 list_contracts['juno168ctmpyppk90d34p3jjy658zf5a5l3w8wk35wht6ccqj4mr0yv8s4j5awr'] = InteractWithToken('Neta token (action with)')
 list_contracts['juno1e8n6ch7msks487ecznyeagmzd5ml2pq9tgedqt2u63vra0q0r9mqrjy6ys'] = JunoswapPool('JUNO NETA Pool')
 
@@ -34,8 +36,9 @@ list_contracts['juno1r4pzw8f9z0sypct5l9j906d47z998ulwvhvqe5xdwgy8wf84583sxwh0pa'
 list_contracts['juno1m08vn7klzxh9tmqwajuux202xms2qz3uckle7zvtturcq7vk2yaqpcwxlz'] = JunoswapPool('JUNO RAC Pool')
 
 list_contracts['juno1n4zjxra84uv4wsqd49pcnykfpu2mzrpg8udv5a35jgs952gylasqcnr0rv'] = OtherJunoContract('Doky Drop', token='DOKY')
-
+list_contracts['juno1svqmj8cgmqwza6a7dxvpt3tew0ggynuzxepuw4p5vgts4epfzfwspz3ylw'] = OtherJunoContract('Claim Neta airdrop', token='NETA')
 list_contracts['juno1unjfruscnz39mh42dtekak489s7mnzyh7ry20t80errfkf5j3spqetewaq'] = OtherJunoContract('Claim Marble airdrop', token='MARBLE')
+
 list_contracts['juno1g2g7ucurum66d42g8k5twk34yegdq8c82858gz0tq2fc75zy7khssgnhjl'] = InteractWithToken('Marble')
 list_contracts['juno14an9atj9jf77emlrajdcx6a5ykvp4kvwe850w043cp2zf5l2lxlqjh0qs3'] = DAOToken('Old Marble DAO')
 list_contracts['juno1ay840g97ngja9k0f9lnywqxwk49245snw69kpwz0ry9qv99q367q3m4x8v'] = DAOToken('Marble DAO')
@@ -65,7 +68,6 @@ list_contracts['juno177m3f78mg5cek8gf5xgea49vs32dt3d6f9dwmuxd3hez3nd7yzgq3ahufw'
 
 list_contracts['juno1kqx9rhc8ksx52tukdx797k4rjrhkgfh4gljs04ql97hmnnkgyvxs5cqt7d'] = DAOToken('Universe DAO')
 list_contracts['juno1mf309nyvr4k4zv0m7m40am9n7nqjf6gupa0wukamwmhgntqj0gxs9hqlrr'] = JunoDNS('Juno DNS')
-list_contracts[''] = ''
 list_contracts[''] = ''
 list_contracts[''] = ''
 

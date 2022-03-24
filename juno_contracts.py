@@ -25,6 +25,20 @@ class JunoContract:
 
 class JunoswapPool(JunoContract):
 
+    @classmethod
+    def get_output_token(cls, amm_address):
+        adresses = dict()
+        adresses['juno1hue3dnrtgf9ly2frnnvf8z5u7e224ctc4hk7wks2xumeu3arj6rs9vgzec'] = 'UST'
+        adresses['juno1sg6chmktuhyj4lsrxrrdflem7gsnk4ejv6zkcc4d3vcqulzp55wsf4l4gl'] = 'ATOM'
+        adresses['juno10mrlcttkwt99wxnqfyk6327lq3ac9yhfle2fd0c5s4rp8dzqy9ps3sjzyf'] = 'LUNA'
+        adresses['juno1z5vukf037r6acgln3n37tr8a5rv7wafqzhcq29ddn9etwwtfrytsn6xvux'] = 'STARS'
+        adresses['juno1el6rfmz6h9pwpdlf6k2qf4dwt3y5wqd7k3xpyvytklsnkt9uv2aqe8aq4v'] = 'OSMO'
+        adresses['juno1730cx75d8uevqvrkcwxpy9trhqqfksu5u9xwqss0qe4tn7x0tt3shakhk8'] = 'HUAHUA'
+        adresses['juno18nflutunkth2smnh257sxtxn9p5tq6632kqgsw6h0c02wzpnq9rq927heu'] = 'HOPE'
+        adresses['juno1acs6q36t6qje5k82h5g74plr258y2q90cjf9z4wnktt7caln0mhsx8mt7z'] = 'CANLAB'
+        adresses['juno1hkz5dhn59w6l29k8w8ceuramqx2f35qpen7xtlx6ezketwh8ndxq8rwq2a'] = 'SCRT'
+        return adresses[amm_address]
+
     def __init__(self, name):
         super().__init__(name)
         self.type_contract = 'Pool'
@@ -33,17 +47,6 @@ class JunoswapPool(JunoContract):
         # Name is JUNO xx POOL
         infos = self.name.split(' ')
         return infos[0], infos[1]
-
-    def get_output_token(self, swap):
-        amm_address = swap['output_amm_address']
-        if amm_address == 'juno1hue3dnrtgf9ly2frnnvf8z5u7e224ctc4hk7wks2xumeu3arj6rs9vgzec':
-            return 'UST'
-        if amm_address == 'juno18nflutunkth2smnh257sxtxn9p5tq6632kqgsw6h0c02wzpnq9rq927heu':
-            return 'HOPE'
-        if amm_address == 'juno1acs6q36t6qje5k82h5g74plr258y2q90cjf9z4wnktt7caln0mhsx8mt7z':
-            return 'CANLAB'
-        print('Unknown amm', amm_address)
-        return '?'
 
     def additional_infos(self, message):
         msg = message['msg']
@@ -59,7 +62,7 @@ class JunoswapPool(JunoContract):
             token_in = token1 if swap['input_token'] == 'Token1' else token2
             token_out = token2 if swap['input_token'] == 'Token1' else token1
             return f"PASS_SWAP {read_token(swap['input_token_amount'])} " \
-                   f"{token_in} for minimum {read_token(swap['output_min_token'])} {self.get_output_token(swap)}"
+                   f"{token_in} for minimum {read_token(swap['output_min_token'])} {self.get_output_token(swap['output_amm_address'])}"
         if 'add_liquidity' in msg:
             liqui = msg['add_liquidity']
             return f"ADD LIQUIDITY {read_token(liqui['token1_amount'])} {token1} and " \
