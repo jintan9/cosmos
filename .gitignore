@@ -1,2 +1,3 @@
 constants/cosmos_addresses.py
+logs/
 *.pyc

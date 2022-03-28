@@ -34,12 +34,11 @@ def calculate_apr(api, token, community_tax, inflation=None):
     return round((inflation * (1 - community_tax)) * 100 / bonded_ratio, 2)
 
 print('ATOM', calculate_apr('https://api.cosmos.network', 'uatom', community_tax=0.02), '%')
+print('OSMO', get_apr('osmo'), '%')
 print('JUNO', calculate_apr('https://api.juno.omniflix.co', 'ujuno', community_tax=0.02), '%')
-print('AKT', calculate_apr('http://135.181.181.122:1518', 'uakt', community_tax=0.02), '%')
 print('SCRT', calculate_apr('https://api.scrt.network', 'uscrt', community_tax=0), '%')
+print('AKT', calculate_apr('http://135.181.181.122:1518', 'uakt', community_tax=0.02), '%')
 print('STARS', calculate_apr('https://api.stars.kingnodes.com', 'ustars', community_tax=0.05, inflation=0.35), '%')
 print('HUAHUA', calculate_apr('https://chihuahua-api.mercury-nodes.net', 'uhuahua', community_tax=0.05, inflation=0.43), '%')
-
-print('OSMO', get_apr('osmo'), '%')
 print('NOMIC', get_apr('nomic'), '%')
 

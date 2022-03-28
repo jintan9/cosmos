@@ -8,6 +8,7 @@ ONE_MILLION = 1000 * 1000
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--address')
+parser.add_argument('--pages', default=1)
 args = parser.parse_args()
 juno = Juno(address=args.address)
 
@@ -126,7 +127,7 @@ first_tx_of_old_batch = -1
 last_tx = 0
 current_page = 0
 
-while current_page < 4 and first_tx_of_old_batch != last_tx:
+while current_page < args.pages and first_tx_of_old_batch != last_tx:
     first_tx_of_old_batch = last_tx
     for tx in juno.last_transactions(offset=last_tx):
         print(f"TRANSACTION {tx['data']['timestamp']} {tx['data']['txhash']}")

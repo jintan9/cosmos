@@ -166,7 +166,10 @@ class IBCToken:
             nb_proposals += 1
             end_time = datetime.datetime.strptime(prop['voting_end_time'][:19], '%Y-%m-%dT%H:%M:%S')
             if end_time > now + datetime.timedelta(hours=5):
-                title = prop['content']['value']['title']
+                try:
+                    title = prop['content']['title']
+                except KeyError:
+                    title = prop['content']['value']['title']
                 print(f"{title} START {prop['voting_start_time']} END {prop['voting_end_time']}")
                 nb_ongoing_proposals += 1
                 if self.has_voted_proposals(prop):

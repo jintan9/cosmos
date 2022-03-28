@@ -64,8 +64,8 @@ def find_best_apr(number_of_token, token_data):
     Compound(number_of_token, 24*7, token_data).calculate_interest(verbose=True)
 
 print('APR NOMIC', Compound(0,0, nomic).get_apr(), '%')
-find_best_apr(6.06, nomic)
-find_best_apr(11.05, nomic)
+find_best_apr(6.90, nomic)
+find_best_apr(12.05, nomic)
 
 # find_best_apr(44, desmos)
 # find_best_apr(26.25, atom)
