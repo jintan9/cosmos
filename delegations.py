@@ -28,7 +28,7 @@ for ibc_obj in addresses:
             ibc_obj.get_balance()
             ibc_obj.get_pools()
             ibc_obj.get_precise_pools()
-        elif ibc_obj.token in ['ATOM', 'JUNO', 'STAR']:
+        elif ibc_obj.token in ['ATOM', 'JUNO', 'STAR', 'ROWAN']:
             print(f'{ibc_obj.token} MORE PRECISE INFO')
             ibc_obj.get_price_by_token_custom()
             ibc_obj.get_balance()

@@ -4,14 +4,17 @@ from constants.list_validators import list_validators
 ONE_MILLION = 1000 * 1000
 ONE_BILLION = 1000 * 1000 * 1000
 
+COSMO_API = ['ROWAN', 'STAR']
+
 def get_time(time_str):
     return datetime.datetime.strptime(time_str.split('.')[0], '%Y-%m-%dT%H:%M:%S')
 
 class IBCToken:
 
-    def __init__(self, token, coingecko_id, unbounding_time, api, api_cosmostation, lcd_cosmostation):
+    def __init__(self, token, coingecko_id, unbounding_time, api_keplr, api_cosmostation, lcd_cosmostation,
+                 division=ONE_MILLION):
         self.address = None
-        self.api = api
+        self.api_keplr = api_keplr
         self.lcd_cosmostation = lcd_cosmostation
         self.api_cosmostation = api_cosmostation
         self.token = token
@@ -19,6 +22,7 @@ class IBCToken:
         self.unbounding_time = unbounding_time
         self.prices_by_token = None
         self.total_value = 0
+        self.division = division
 
     def get_total_value(self, verbose=False):
         if verbose:
@@ -27,7 +31,7 @@ class IBCToken:
 
     @staticmethod
     def get_price_by_token(list_entries=None):
-        list_price = requests.get('https://api-osmosis.imperator.co/tokens/v1/all').json()
+        list_price = requests.get('https://api-osmosis.imperator.co/tokens/v2/all').json()
         all_prices = dict()
 
         if list_entries is None:
@@ -57,8 +61,8 @@ class IBCToken:
 
         all_prices['ibc/9989AD6CCA39D1131523DB0617B50F6442081162294B4795E26746292467B525']['division'] = ONE_MILLION * 1000 # LIKE
         all_prices['ibc/7A08C6F11EF0F59EB841B9F788A87EC9F2361C7D9703157EC13D940DC53031FA']['division'] = ONE_MILLION * 1000 # CHEQ
-        all_prices['ibc/8061A06D3BD4D52C4A28FFECF7150D370393AF0BA661C3776C54FF32836C3961']['division'] = ONE_MILLION * ONE_MILLION * ONE_MILLION # PSTAKE
-        all_prices['ibc/8318FD63C42203D16DDCAF49FE10E8590669B3219A3E87676AC9DA50722687FB']['division'] = ONE_MILLION * ONE_MILLION * ONE_MILLION # ROWAN
+        all_prices['ibc/8061A06D3BD4D52C4A28FFECF7150D370393AF0BA661C3776C54FF32836C3961']['division'] = ONE_BILLION * ONE_BILLION # PSTAKE
+        all_prices['ibc/8318FD63C42203D16DDCAF49FE10E8590669B3219A3E87676AC9DA50722687FB']['division'] = ONE_BILLION * ONE_BILLION # ROWAN
 
         return all_prices
 
@@ -66,7 +70,11 @@ class IBCToken:
         self.prices_by_token = self.get_price_by_token(list_entries)
 
     def get_balance(self):
-        list_tokens = requests.get(self.api + 'bank/balances/' + self.address).json()['result']
+        list_tokens = requests.get(self.get_balance_url()).json()
+        if 'result' in list_tokens:
+            list_tokens = list_tokens['result']
+        else:
+            list_tokens = list_tokens['balances']
         total_money = 0
         print('===BALANCE===')
         for coin in list_tokens:
@@ -99,6 +107,21 @@ class IBCToken:
                                                              moniker=val['moniker'])
         return ranks_validators
 
+    def get_delegation_url(self):
+        if self.token in COSMO_API:
+            return self.lcd_cosmostation + 'cosmos/staking/v1beta1/delegations/' + self.address
+        return self.api_keplr + 'staking/delegators/' + self.address + '/delegations'
+
+    def get_unbouding_url(self):
+        if self.token in COSMO_API:
+            return self.lcd_cosmostation + 'cosmos/staking/v1beta1/delegators/' + self.address + '/unbonding_delegations'
+        return self.api_keplr + 'staking/delegators/' + self.address + '/unbonding_delegations'
+
+    def get_balance_url(self):
+        if self.token in COSMO_API:
+            return self.lcd_cosmostation + 'cosmos/bank/v1beta1/balances/' + self.address
+        return self.api_keplr + 'bank/balances/' + self.address
+
     def get_percent_delegation(self, recalculate_ranks=False, verbose=False):
         if recalculate_ranks:
             ranks_validators = self.list_validators()
@@ -107,9 +130,12 @@ class IBCToken:
         else:
             ranks_validators = list_validators[self.token]
 
-        validators = requests.get(self.api + 'staking/delegators/' + self.address + '/delegations').json()
-        my_delegation = validators['result']
-        total = sum([int(x['balance']['amount']) for x in my_delegation]) / ONE_MILLION
+        validators = requests.get(self.get_delegation_url()).json()
+        if 'result' in validators:
+            my_delegation = validators['result']
+        else:
+            my_delegation = validators['delegation_responses']
+        total = sum([int(x['balance']['amount']) for x in my_delegation]) / self.division
 
         price_token = requests.get(
             f'https://api.coingecko.com/api/v3/simple/price?ids={self.coingecko_id}&vs_currencies=usd').json()
@@ -119,7 +145,7 @@ class IBCToken:
         print(f'TOTAL STAKING {total} {self.token} / {self.total_value} UST')
         for delegation in my_delegation:
             info_validator = ranks_validators[delegation['delegation']['validator_address']]
-            montant = int(delegation['balance']['amount']) / ONE_MILLION
+            montant = int(delegation['balance']['amount']) / self.division
             if montant > 0:
                 print(f"{info_validator} :  {montant} {self.token} soit {round(montant * 100 / total, 2)} %")
 
@@ -127,14 +153,18 @@ class IBCToken:
         return list_validators[self.token][current_address]['moniker']
 
     def get_unbounding_info(self):
-        infos = requests.get(self.api + 'staking/delegators/' + self.address + '/unbonding_delegations').json()['result']
+        infos = requests.get(self.get_unbouding_url()).json()
+        if 'result' in infos:
+            infos = infos['result']
+        else:
+            infos = infos['unbonding_responses']
         if len(infos) == 0:
             return
         print('UNBOUNDING')
         for unbound in infos:
             moniker_src = self.get_info_validator(unbound['validator_address'])
             end_time = get_time(unbound['entries'][0]['completion_time'])
-            balance = int(unbound['entries'][0]['balance']) / ONE_MILLION
+            balance = int(unbound['entries'][0]['balance']) / self.division
             start_time = end_time - datetime.timedelta(days=self.unbounding_time)
             print(f"UNBOUND {balance} {self.token} FROM {moniker_src} | started : {start_time} | end : {end_time}")
 
@@ -160,7 +190,8 @@ class IBCToken:
         nb_ongoing_proposals = 0
         nb_voted = 0
         list_not_voted = []
-        list_proposals = requests.get(self.api + 'gov/proposals?limit=1000').json()['result']
+        print(self.api_keplr)
+        list_proposals = requests.get(self.api_keplr + 'gov/proposals?limit=1000').json()['result']
 
         for prop in list_proposals:
             nb_proposals += 1
@@ -186,7 +217,7 @@ class IBCToken:
                     list_not_voted=list_not_voted)
 
     def has_voted_proposals(self, prop):
-        url = self.api + 'gov/proposals/' + prop['id'] + '/votes/' + self.address
+        url = self.api_keplr + 'gov/proposals/' + prop['id'] + '/votes/' + self.address
         has_voted = requests.get(url).json()
         print(has_voted)
         if 'error' in has_voted:
@@ -199,7 +230,7 @@ class IBCToken:
 class ATOM(IBCToken):
 
     def __init__(self, address):
-        super().__init__(api='https://lcd-cosmoshub.keplr.app/',
+        super().__init__(api_keplr='https://lcd-cosmoshub.keplr.app/',
                          unbounding_time=21,
                          lcd_cosmostation='https://lcd-cosmos.cosmostation.io/',
                          api_cosmostation='https://api.cosmostation.io/',
@@ -219,7 +250,7 @@ class ATOM(IBCToken):
 class Osmo(IBCToken):
 
     def __init__(self, address):
-        super().__init__(api='https://lcd-osmosis.keplr.app/',
+        super().__init__(api_keplr='https://lcd-osmosis.keplr.app/',
                          unbounding_time=14,
                          lcd_cosmostation='https://lcd-osmosis.cosmostation.io/',
                          api_cosmostation='https://api-osmosis.cosmostation.io/',
@@ -238,7 +269,7 @@ class Osmo(IBCToken):
 
     def get_pool_total_shares(self, id_pool):
         if id_pool not in self.pools_total_share:
-            infos = requests.get(self.api + 'osmosis/gamm/v1beta1/pools/' + id_pool).json()
+            infos = requests.get(self.api_keplr + 'osmosis/gamm/v1beta1/pools/' + id_pool).json()
             self.pools_total_share[id_pool] = int(infos['pool']['totalShares']['amount'])
         return self.pools_total_share[id_pool]
 
@@ -253,7 +284,7 @@ class Osmo(IBCToken):
         print('POOLS')
         total_money = 0
 
-        list_lp = requests.get(self.api + 'osmosis/lockup/v1beta1/account_locked_coins/' + self.address).json()['coins']
+        list_lp = requests.get(self.api_keplr + 'osmosis/lockup/v1beta1/account_locked_coins/' + self.address).json()['coins']
         for lp in sorted(list_lp, key=lambda x: x['denom']):
 
             nb_lp = round(int(lp['amount']) / (ONE_BILLION * ONE_BILLION), 4)
@@ -290,7 +321,7 @@ class Osmo(IBCToken):
 
     def get_precise_pools(self):
         print('MORE PRECISE')
-        list_locks = requests.get(self.api + 'osmosis/lockup/v1beta1/account_locked_longer_duration/' + self.address).json()['locks']
+        list_locks = requests.get(self.api_keplr + 'osmosis/lockup/v1beta1/account_locked_longer_duration/' + self.address).json()['locks']
         for lock in sorted(list_locks, key=lambda x: x['coins'][0]['denom']):
             current_lp = lock['coins'][0]
             print(self.get_info_precise(current_lp, lock))
@@ -299,7 +330,7 @@ class Osmo(IBCToken):
 class Secret(IBCToken):
 
     def __init__(self, address):
-        super().__init__(api='https://lcd-secret.keplr.app/',
+        super().__init__(api_keplr='https://lcd-secret.keplr.app/',
                          unbounding_time=21,
                          lcd_cosmostation='https://lcd-secret.cosmostation.io/',
                          api_cosmostation='https://api-secret.cosmostation.io/',
@@ -311,7 +342,7 @@ class Secret(IBCToken):
 class Akash(IBCToken):
 
     def __init__(self, address):
-        super().__init__(api='https://lcd-akash.keplr.app/',
+        super().__init__(api_keplr='https://lcd-akash.keplr.app/',
                          unbounding_time=21,
                          lcd_cosmostation='https://lcd-akash.cosmostation.io/',
                          api_cosmostation='https://api-akash.cosmostation.io/',
@@ -323,7 +354,7 @@ class Akash(IBCToken):
 class Chihuahua(IBCToken):
 
     def __init__(self, address):
-        super().__init__(api='https://api.chihuahua.wtf/',
+        super().__init__(api_keplr='https://api.chihuahua.wtf/',
                          unbounding_time=28,
                          lcd_cosmostation='https://lcd-chihuahua.cosmostation.io/',
                          api_cosmostation='https://api-chihuahua.cosmostation.io/',
@@ -335,7 +366,7 @@ class Chihuahua(IBCToken):
 class Stargaze(IBCToken):
 
     def __init__(self, address):
-        super().__init__(api='https://rest.stargaze.publicawesome.dev/',
+        super().__init__(api_keplr='https://lcd-stargaze.keplr.app/',
                          unbounding_time=14,
                          lcd_cosmostation='https://lcd-stargaze.cosmostation.io/',
                          api_cosmostation='https://api-stargaze.cosmostation.io/',
@@ -354,7 +385,7 @@ class Juno(IBCToken):
     def __init__(self, address):
         super().__init__('JUNO',
                          coingecko_id='juno-network',
-                         api='https://lcd-juno.keplr.app/',
+                         api_keplr='https://lcd-juno.keplr.app/',
                          unbounding_time=28,
                          lcd_cosmostation='https://lcd-juno.cosmostation.io/',
                          api_cosmostation='https://api-juno.cosmostation.io/')
@@ -367,4 +398,58 @@ class Juno(IBCToken):
         list_entries['UST'] = 'ibc/2DA4136457810BCB9DAAB620CA67BC342B17C3C70151CA70490A170DF7C9CB27'
         list_entries['OSMO'] = 'ibc/ED07A3391A112B175915CD8FAF43A2DA8E4790EDE12566649D0C2F97716B8518'
 
+        self.set_price_by_token(list_entries)
+
+
+class Sifchain(IBCToken):
+
+    def __init__(self, address):
+        super().__init__(api_keplr='https://lcd-sifchain.keplr.app/',
+                         unbounding_time=21,
+                         lcd_cosmostation='https://lcd-sifchain.cosmostation.io/',
+                         api_cosmostation='https://api-sifchain.cosmostation.io/',
+                         coingecko_id='sifchain',
+                         division=ONE_BILLION * ONE_BILLION,
+                         token='ROWAN')
+        self.address = address
+
+    def get_price_by_token_custom(self):
+        list_entries = dict()
+        list_entries['ROWAN'] =  dict(symbol='rowan',
+                                      division=ONE_BILLION * ONE_BILLION)
+        self.set_price_by_token(list_entries)
+
+
+class Crescent(IBCToken):
+
+    def __init__(self, address):
+        super().__init__(api_keplr='https://api-kava.cosmostation.io/',
+                         unbounding_time=14,
+                         lcd_cosmostation='https://lcd-crescent.cosmostation.io/',
+                         api_cosmostation='https://api-crescent.cosmostation.io/',
+                         coingecko_id='crescent',
+                         token='CRE')
+        self.address = address
+
+    def get_price_by_token_custom(self):
+        list_entries = dict()
+        list_entries['ROWAN'] =  dict(symbol='rowan',
+                                      division=ONE_BILLION * ONE_BILLION)
+        self.set_price_by_token(list_entries)
+
+class Kava(IBCToken):
+
+    def __init__(self, address):
+        super().__init__(api_keplr='https://api-kava.cosmostation.io/',
+                         unbounding_time=21,
+                         lcd_cosmostation='https://lcd-kava.cosmostation.io/',
+                         api_cosmostation='https://api-kava.cosmostation.io/',
+                         coingecko_id='kava',
+                         token='KAVA')
+        self.address = address
+
+    def get_price_by_token_custom(self):
+        list_entries = dict()
+        list_entries['ROWAN'] =  dict(symbol='rowan',
+                                      division=ONE_BILLION * ONE_BILLION)
         self.set_price_by_token(list_entries)
