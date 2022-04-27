@@ -110,7 +110,6 @@ def get_info_precise(lp, price_by_pool, lock):
 
 
 def get_precise_pools(user_address, price_by_pool):
-    print('MORE PRECISE')
     list_locks = requests.get('https://lcd-osmosis.keplr.app/osmosis/lockup/v1beta1/account_locked_longer_duration/' +
                               user_address).json()['locks']
     for lock in sorted(list_locks, key=lambda x: x['coins'][0]['denom']):

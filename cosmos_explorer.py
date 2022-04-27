@@ -1,8 +1,12 @@
 import argparse
 import datetime
 
-from ibc_model import Juno, Osmo, ATOM, Stargaze, Secret, Sifchain, Crescent
-from juno_contracts_model import list_contracts
+from explorer.crescent_explorer import get_crescent_transaction
+from explorer.osmosis_explorer import get_osmosis_transaction
+from explorer.sif_explorer import get_sif_transaction
+from ibc_model import Juno, Osmo, ATOM, Stargaze, Sifchain, Crescent
+from explorer.juno_explorer import list_contracts as juno_contracts
+from explorer.stargaze_explorer import StargazeContract
 
 ONE_MILLION = 1000 * 1000
 
@@ -20,12 +24,11 @@ def get_ibc_chain(address):
         return ATOM(address=address)
     if address.startswith('stars'):
         return Stargaze(address=address)
-    if address.startswith('secret'):
-        return Secret(address=address)
     if address.startswith('sif'):
         return Sifchain(address=address)
     if address.startswith('cre'):
         return Crescent(address=address)
+    raise Exception('Chain not supported')
 
 ibc_address = get_ibc_chain(address=args.address)
 
@@ -39,8 +42,6 @@ infos_messages['/cosmos.authz.v1beta1.MsgGrant'] = 'Grant access (restake)'
 infos_messages['/ibc.core.client.v1.MsgUpdateClient'] = 'Update Client'
 infos_messages['/ibc.core.channel.v1.MsgAcknowledgement'] = 'Acknowledgement'
 infos_messages['/cosmwasm.wasm.v1.MsgInstantiateContract'] = 'Create new contract'
-infos_messages['/osmosis.lockup.MsgBeginUnlocking'] = 'Unlocking LP'
-infos_messages['/osmosis.superfluid.MsgSuperfluidDelegate'] = 'Superfluid Staking'
 
 def get_type_of_transaction(message):
     type_message = message['@type']
@@ -52,23 +53,26 @@ def get_type_of_transaction(message):
         return f"IBC Sent to {message['to_address']}"
     if type_message == '/ibc.core.channel.v1.MsgRecvPacket':
         return f"IBC Received"
-    if type_message == '/osmosis.gamm.v1beta1.MsgSwapExactAmountIn':
-        print(message)
-        return 'SWAP'
-    if type_message == '/osmosis.gamm.v1beta1.MsgJoinPool':
-        return f"JOIN LP {message['poolId']}"
-    if type_message == '/osmosis.lockup.MsgLockTokens':
-        return f"LOCK LP {message['coins'][0]['denom']} FOR {int(message['duration'][:-1]) / 86400} DAYS"
+    if type_message.startswith('/crescent'):
+        return get_crescent_transaction(type_message, message)
+    if type_message.startswith('/sifnode'):
+        return get_sif_transaction(type_message, message)
+    if type_message.startswith('/osmosis'):
+        return get_osmosis_transaction(type_message, message)
     if type_message == '/ibc.applications.transfer.v1.MsgTransfer':
         return f"IBC Transfer to {message['receiver']}"
     if type_message == '/cosmwasm.wasm.v1.MsgExecuteContract':
-        try:
-            contract = list_contracts[message['contract']]
+        if type(ibc_address) == Juno:
+            try:
+                contract = juno_contracts[message['contract']]
+                contract = contract.transaction_name(message)
+            except KeyError as e:
+                print('KEY ERROR', e)
+                contract = 'Unknown contract ' + message['contract']
+                print('Unknown message', message)
+        if type(ibc_address) == Stargaze:
+            contract = StargazeContract('STARGAZE')
             contract = contract.transaction_name(message)
-        except KeyError as e:
-            print('KEY ERROR', e)
-            contract = 'Unknown contract ' + message['contract']
-            print('Unknown message', message)
 
         return f'Execute contract : {contract}'
     else:
