@@ -43,6 +43,23 @@ infos_messages['/ibc.core.client.v1.MsgUpdateClient'] = 'Update Client'
 infos_messages['/ibc.core.channel.v1.MsgAcknowledgement'] = 'Acknowledgement'
 infos_messages['/cosmwasm.wasm.v1.MsgInstantiateContract'] = 'Create new contract'
 
+
+def get_cosmos_address(address):
+    if address == 'cosmos15v50ymp6n5dn73erkqtmq0u8adpl8d3ujv2e74':
+        return f'Binance ({address})'
+    if address == 'cosmos1psr5x3kgra5fvm4gc4l6ufykn0nl3esdjeex8n':
+        return f'Exchange1 ({address})'
+    if address == 'cosmos18ld4633yswcyjdklej3att6aw93nhlf7ce4v8u':
+        return f'Exchange2 ({address})'
+    if address == 'cosmos1gwyv83zcnckdhuz3n78rvyzj59u8x6l8dk9cfy':
+        return f'Exchange3 ({address})'
+    if address == 'cosmos17muvdgkep4ndptnyg38eufxsssq8jr3wnkysy8':
+        return f'Kucoin ({address})'
+    if address == ibc_address.address:
+        return 'me'
+    return address
+
+
 def get_type_of_transaction(message):
     type_message = message['@type']
     if type_message in infos_messages:
@@ -50,7 +67,8 @@ def get_type_of_transaction(message):
     if type_message == '/cosmos.gov.v1beta1.MsgVote':
         return f"Vote for proposal {message['proposal_id']} : {message['option']}"
     if type_message == '/cosmos.bank.v1beta1.MsgSend':
-        return f"IBC Sent to {message['to_address']}"
+        return f"IBC Transfer : from {get_cosmos_address(message['from_address'])} to " \
+               f"{get_cosmos_address(message['to_address'])}"
     if type_message == '/ibc.core.channel.v1.MsgRecvPacket':
         return f"IBC Received"
     if type_message.startswith('/crescent'):

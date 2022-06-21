@@ -29,4 +29,4 @@ for ibc_obj in addresses:
     if show_votes:
         ibc_obj.show_ongoing_proposals()
 
-print(f'BIG TOTAL : {big_total} UST')
+print(f'BIG TOTAL : {big_total} USDC')

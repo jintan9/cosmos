@@ -4,10 +4,37 @@ from constants.list_validators import list_validators
 ONE_MILLION = 1000 * 1000
 ONE_BILLION = 1000 * 1000 * 1000
 
-COSMO_API = ['ROWAN', 'STAR', 'CRE']
+COSMO_API = ['ROWAN', 'STAR', 'CRE', 'EVMOS']
+
 
 def get_time(time_str):
     return datetime.datetime.strptime(time_str.split('.')[0], '%Y-%m-%dT%H:%M:%S')
+
+
+class Token:
+
+    def __init__(self, name, price, division=ONE_MILLION):
+        self.name = name
+        self.price = price
+        self.division = division
+
+    def set_division(self, division):
+        self.division = division
+
+    def set_price(self, price):
+        self.price = price
+
+    def get_value(self, amount_coin):
+        try:
+            nb_coin = round(amount_coin / self.division, 4)
+            usdc = round(nb_coin * self.price, 2)
+            print(f"{self.name} : {nb_coin} // {usdc} USDC")
+            return usdc
+        except KeyError:
+            print(coin)
+            return 0
+
+
 
 class IBCToken:
 
@@ -31,12 +58,12 @@ class IBCToken:
             infos = infos[category]
             for contract_id in infos['userData']:
                 contract = infos['userData'][contract_id]
-                print(f"{round(contract['staked'], 2)} {contract['tokenPair']} : {round(contract['lpPrice'], 2)} UST")
+                print(f"{round(contract['staked'], 2)} {contract['tokenPair']} : {round(contract['lpPrice'], 2)} USDC")
                 self.total_value += round(contract['lpPrice'], 2)
 
     def get_total_value(self, verbose=False):
         if verbose:
-            print(f"TOTAL FOR {self.token} CHAIN : {round(self.total_value, 2)} UST")
+            print(f"TOTAL FOR {self.token} CHAIN : {round(self.total_value, 2)} USDC")
         return round(self.total_value, 2)
 
     @staticmethod
@@ -50,9 +77,8 @@ class IBCToken:
             double_entries = list_entries
 
         for price_token in list_price:
-            all_prices[price_token['denom']] = dict(name=price_token['symbol'],
-                                                    division=ONE_MILLION,
-                                                    price=price_token['price'])
+            all_prices[price_token['denom']] = Token(name=price_token['symbol'],
+                                                     price=price_token['price'])
             if price_token['symbol'] in double_entries:
                 info_token = double_entries[price_token['symbol']]
                 if type(info_token) == str:
@@ -64,15 +90,15 @@ class IBCToken:
                     new_symbol = double_entries[price_token['symbol']]['symbol']
                     division = double_entries[price_token['symbol']]['division']
 
-                all_prices[new_symbol] = dict(name=price_token['symbol'],
-                                              division=division,
-                                              price=price_token['price'])
+                all_prices[new_symbol] = Token(name=price_token['symbol'],
+                                               division=division,
+                                               price=price_token['price'])
 
-
-        all_prices['ibc/9989AD6CCA39D1131523DB0617B50F6442081162294B4795E26746292467B525']['division'] = ONE_MILLION * 1000 # LIKE
-        all_prices['ibc/7A08C6F11EF0F59EB841B9F788A87EC9F2361C7D9703157EC13D940DC53031FA']['division'] = ONE_MILLION * 1000 # CHEQ
-        all_prices['ibc/8061A06D3BD4D52C4A28FFECF7150D370393AF0BA661C3776C54FF32836C3961']['division'] = ONE_BILLION * ONE_BILLION # PSTAKE
-        all_prices['ibc/8318FD63C42203D16DDCAF49FE10E8590669B3219A3E87676AC9DA50722687FB']['division'] = ONE_BILLION * ONE_BILLION # ROWAN
+        all_prices['ibc/9989AD6CCA39D1131523DB0617B50F6442081162294B4795E26746292467B525'].set_division(ONE_MILLION * 1000) # LIKE
+        all_prices['ibc/7A08C6F11EF0F59EB841B9F788A87EC9F2361C7D9703157EC13D940DC53031FA'].set_division(ONE_MILLION * 1000) # CHEQ
+        all_prices['ibc/8061A06D3BD4D52C4A28FFECF7150D370393AF0BA661C3776C54FF32836C3961'].set_division(ONE_BILLION * ONE_BILLION) # PSTAKE
+        all_prices['ibc/8318FD63C42203D16DDCAF49FE10E8590669B3219A3E87676AC9DA50722687FB'].set_division(ONE_BILLION * ONE_BILLION) # ROWAN
+        all_prices['ibc/6AE98883D4D5D5FF9E50D7130F1305DA2FFA0C652D1DD9C123657C6B4EB2DF8A'].set_division(ONE_BILLION * ONE_BILLION) # EVMOS
 
         return all_prices
 
@@ -90,13 +116,10 @@ class IBCToken:
         for coin in list_tokens:
             try:
                 info_coin = self.prices_by_token[coin['denom']]
-                nb_coin = round(int(coin['amount']) / info_coin['division'], 4)
-                ust = round(nb_coin * info_coin['price'], 2)
-                total_money += ust
-                print(f"{info_coin['name']} : {nb_coin} // {ust} UST")
-            except KeyError:
-                print(coin)
-        print(f"TOTAL IN BALANCE : {total_money} UST")
+                total_money += info_coin.get_value(int(coin['amount']))
+            except:
+                print(f"NO INFORMATIONS FOR TOKEN {coin['denom']}")
+        print(f"TOTAL IN BALANCE : {total_money} USDC")
         self.total_value += total_money
 
     def url_last_txs(self, limit, offset):
@@ -111,8 +134,12 @@ class IBCToken:
         return requests.get(self.url_last_txs(limit, offset)).json()
 
     def list_validators(self):
-        all_validators = requests.get(self.url_list_validators,
-                                      headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64"}).json()
+        all_validators = requests.get(
+            self.url_list_validators, headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64",
+                "Connection": "keep-alive",
+                "Origin": "https://www.mintscan.io",
+                "Referer": "https://www.mintscan.io /"}).json()
         ranks_validators = dict()
         for val in all_validators:
             ranks_validators[val['operator_address']] = dict(rank=val['rank'],
@@ -134,6 +161,11 @@ class IBCToken:
             return self.lcd_cosmostation + 'cosmos/bank/v1beta1/balances/' + self.address
         return self.api_keplr + 'bank/balances/' + self.address
 
+    @property
+    def price_token(self):
+        return requests.get(
+            f'https://api.coingecko.com/api/v3/simple/price?ids={self.coingecko_id}&vs_currencies=usd').json()[self.coingecko_id]['usd']
+
     def get_percent_delegation(self, recalculate_ranks=False, verbose=False):
         if recalculate_ranks:
             try:
@@ -154,15 +186,13 @@ class IBCToken:
         total = sum([int(x['balance']['amount']) for x in my_delegation]) / self.division
 
         try:
-            price_token = requests.get(
-                f'https://api.coingecko.com/api/v3/simple/price?ids={self.coingecko_id}&vs_currencies=usd').json()
-            total_money = round(total * price_token[self.coingecko_id]['usd'], 2)
+            total_money = round(total * self.price_token, 2)
         except Exception as e:
             print('EXCEPTION', e)
             total_money = 0
         self.total_value += total_money
 
-        print(f'TOTAL STAKING {total} {self.token} / {self.total_value} UST')
+        print(f'TOTAL STAKING {total} {self.token} / {self.total_value} USDC')
         for delegation in my_delegation:
             info_validator = ranks_validators[delegation['delegation']['validator_address']]
             montant = int(delegation['balance']['amount']) / self.division

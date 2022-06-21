@@ -1,4 +1,4 @@
-from ibc_common_model import IBCToken, ONE_MILLION, ONE_BILLION
+from ibc_common_model import IBCToken, ONE_MILLION, ONE_BILLION, Token
 import requests
 
 class ATOM(IBCToken):
@@ -44,43 +44,18 @@ class Osmo(IBCToken):
         self.set_price_by_token()
         self.get_balance()
         self.get_pools()
-        self.get_precise_pools()
-
-    def get_pool_liquidity(self, id_pool):
-        if self.all_pools is None:
-            self.all_pools = requests.get('https://api-osmosis.imperator.co/search/v1/pools').json()
-
-        name = f"{self.all_pools[id_pool][0]['symbol']}/{self.all_pools[id_pool][1]['symbol']}"
-        return name, self.all_pools[id_pool][0]['liquidity']
-
-    def get_pool_total_shares(self, id_pool):
-        if id_pool not in self.pools_total_share:
-            infos = requests.get(self.api_keplr + 'osmosis/gamm/v1beta1/pools/' + id_pool).json()
-            self.pools_total_share[id_pool] = int(infos['pool']['totalShares']['amount'])
-        return self.pools_total_share[id_pool]
-
-    def liquidity_by_pool(self, lp):
-        id_pool = lp['denom'].split('/')[-1]
-        my_shares = int(lp['amount'])
-        total_shares = self.get_pool_total_shares(id_pool)
-        name, liquidity = self.get_pool_liquidity(id_pool)
-        return name, round(my_shares / total_shares * liquidity, 2)
 
     def get_pools(self):
         print('POOLS')
         total_money = 0
 
-        list_lp = requests.get(self.api_keplr + 'osmosis/lockup/v1beta1/account_locked_coins/' + self.address).json()['coins']
-        for lp in sorted(list_lp, key=lambda x: x['denom']):
+        list_lp = requests.get('https://api-osmosis-chain.imperator.co/account/v1/exposure/' + self.address).json()
 
-            nb_lp = round(int(lp['amount']) / (ONE_BILLION * ONE_BILLION), 4)
-            try:
-                name, ust = self.liquidity_by_pool(lp)
-                total_money += ust
-                print(f"{lp['denom']} ({name}) {nb_lp} LP // {ust} UST")
-            except KeyError:
-                print(lp['denom'], nb_lp)
-        print(f"TOTAL IN POOLS : {total_money} UST")
+        for lp in list_lp['pool_exposure']:
+            print(f"POOL {lp['token'][0]['symbol']} / {lp['token'][1]['symbol']} : {round(lp['pool_value'], 2)} USDC")
+            total_money += round(lp['pool_value'], 2)
+
+        print(f"TOTAL IN POOLS : {total_money} USDC")
         self.total_value += total_money
 
     def get_info_precise(self, lp, lock):
@@ -104,12 +79,6 @@ class Osmo(IBCToken):
                                                                     nb_lp, ust, duration)
         return '%s (%s) %s LP // %s UST // LOCK DURATION %s // END TIME %s' % (
             lp['denom'], name, nb_lp, ust, duration, lock['end_time'])
-
-    def get_precise_pools(self):
-        list_locks = requests.get(self.api_keplr + 'osmosis/lockup/v1beta1/account_locked_longer_duration/' + self.address).json()['locks']
-        for lock in sorted(list_locks, key=lambda x: x['coins'][0]['denom']):
-            current_lp = lock['coins'][0]
-            print(self.get_info_precise(current_lp, lock))
 
 
 class Secret(IBCToken):
@@ -196,7 +165,12 @@ class Juno(IBCToken):
 
     def get_junoswap_balance(self):
         print('===JUNOSWAP===')
-        self.get_zeroxtracker_data('JunoSwap')
+        try:
+            self.get_zeroxtracker_data('JunoSwap')
+        except Exception as err:
+            print('ERROR ZEROXTRACKER', err)
+            print('NO INFORMATIONS')
+
 
 class Sifchain(IBCToken):
 
@@ -226,6 +200,7 @@ class Sifchain(IBCToken):
         print('=== LP SIFCHAIN ===')
         self.get_zeroxtracker_data('Sifchain')
 
+
 class Crescent(IBCToken):
 
     def __init__(self, address):
@@ -239,21 +214,41 @@ class Crescent(IBCToken):
 
     def get_price_by_token_custom(self):
         list_entries = dict()
-        list_entries['BCRE'] = 'ubre'
-        list_entries['ATOM'] = 'ibc/C4CFF46FD6DE35CA4CF4CE031E643C8FDC9BA4B99AE598E9B0ED98FE3A2319F9'
-        list_entries['UST'] = 'ibc/6F4968A73F90CF7DE6394BF937D6DF7C7D162D74D839C13F53B41157D315E05F'
+        list_entries['USDC'] = 'ibc/CD01034D6749F20AAC5330EF4FD8B8CA7C40F7527AB8C4A302FBD2A070852EE1'
 
         self.set_price_by_token(list_entries)
 
     def get_precise_infos(self):
         print('CRESCENT MORE PRECISE INFO')
         self.get_price_by_token_custom()
+        self.prices_by_token['ubcre'] = Token(name='BCRE',
+                                              price=0)
+        self.prices_by_token['ucre'] = Token(name='CRE',
+                                             price=0)
+        for data in requests.get('https://apigw.crescent.network/asset/live').json()['data']:
+            if data['denom'] == 'ubcre':
+                self.prices_by_token['ubcre'].set_price(data['priceOracle'])
+            if data['denom'] == 'ucre':
+                self.prices_by_token['ucre'].set_price(data['priceOracle'])
         self.get_balance()
         self.get_crescent_balance()
 
     def get_crescent_balance(self):
         print('====LP CRESCENT===')
-        self.get_zeroxtracker_data('Crescent')
+        try:
+            self.get_zeroxtracker_data('Crescent')
+        except Exception as err:
+            print('ERROR ZEROXTRACKER', err)
+            print('NO INFORMATIONS')
+
+    @property
+    def price_token(self):
+        for data in requests.get('https://apigw.crescent.network/asset/live').json()['data']:
+            if data['denom'] == 'ucre':
+                return data['priceOracle']
+        return 0
+
+
 
 class Kava(IBCToken):
 
@@ -270,4 +265,22 @@ class Kava(IBCToken):
         list_entries = dict()
         list_entries['ROWAN'] =  dict(symbol='rowan',
                                       division=ONE_BILLION * ONE_BILLION)
+        self.set_price_by_token(list_entries)
+
+
+class Evmos(IBCToken):
+    def __init__(self, address):
+        super().__init__(api_keplr='https://api-evmos.cosmostation.io/',
+                         unbounding_time=14,
+                         lcd_cosmostation='https://lcd-evmos.cosmostation.io/',
+                         api_cosmostation='https://api-evmos.cosmostation.io/',
+                         coingecko_id='evmos',
+                         division=ONE_BILLION * ONE_BILLION,
+                         token='EVMOS')
+        self.address = address
+
+    def get_price_by_token_custom(self):
+        list_entries = dict()
+        list_entries['ROWAN'] = dict(symbol='rowan',
+                                     division=ONE_BILLION * ONE_BILLION)
         self.set_price_by_token(list_entries)

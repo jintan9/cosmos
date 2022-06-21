@@ -81,10 +81,10 @@ def get_total_apr(infos_all_pools, price_osmosis, pool_specific):
         nb_tokens_by_day = 0
 
     percent_pool = money_invested / pool_result['liquidity']
-    osmo_ust_earned = money_invested * pool_result['apr'] / (365 * 100)
+    osmo_usdc_earned = money_invested * pool_result['apr'] / (365 * 100)
     nb_token_earned = percent_pool * nb_tokens_by_day
 
-    total_earned = round((osmo_ust_earned  + nb_token_earned * pool_specific['price_token']) * 365, 2)
+    total_earned = round((osmo_usdc_earned  + nb_token_earned * pool_specific['price_token']) * 365, 2)
     total_apr = round(total_earned / money_invested * 100, 2)
     print('TOTAL', total_earned, 'USD')
     print('TOTAL APR', total_apr, '%')

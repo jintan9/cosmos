@@ -1,8 +1,5 @@
-def read_token(number):
-    return round(int(number) / (1000 * 1000), 4)
+from explorer.constants import read_token, read_big_token
 
-def read_big_token(number):
-    return round(int(number) / (1000 * 1000 * 10000), 4)
 
 def coin_name(denom):
     if denom == 'ubcre':

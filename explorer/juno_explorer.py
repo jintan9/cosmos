@@ -1,10 +1,4 @@
-
-def read_token(number):
-    return round(int(number) / (1000 * 1000), 4)
-
-
-def read_token_fortis(number):
-    return round(int(number) / (1000 * 1000 * 10000), 4)
+from explorer.constants import read_token, read_big_token
 
 class JunoContract:
 
@@ -201,9 +195,9 @@ class Fortis(JunoContract):
     def additional_infos(self, message):
         msg = message['msg']
         if 'claim' in msg:
-            return f"CLAIM {read_token_fortis(msg['claim']['amount'])} FOT"
+            return f"CLAIM {read_big_token(msg['claim']['amount'])} FOT"
         if 'send' in msg:
-            return f"SEND {read_token_fortis(msg['send']['amount'])} TO {self.get_readable_contrat(msg['send']['contract'])}"
+            return f"SEND {read_big_token(msg['send']['amount'])} TO {self.get_readable_contrat(msg['send']['contract'])}"
         if 'claim_reward' in msg:
             return f"CLAIM REWARD"
         if 'swap' in msg:
@@ -221,11 +215,11 @@ class Fortis(JunoContract):
         if 'increase_allowance' in msg:
             return ''
         if 'create_unstake' in msg:
-            return f"UNSTAKE {read_token_fortis(msg['create_unstake']['unstake_amount'])} gFOT"
+            return f"UNSTAKE {read_big_token(msg['create_unstake']['unstake_amount'])} gFOT"
         if 'fetch_unstake' in msg:
             return f"FETCH UNSTAKE"
         if 'transfer' in msg:
-            return f"TRANSFER {read_token_fortis(msg['transfer']['amount'])} TO {msg['transfer']['recipient']}"
+            return f"TRANSFER {read_big_token(msg['transfer']['amount'])} TO {msg['transfer']['recipient']}"
         print('Unknown Fortis', msg)
         return ''
 
